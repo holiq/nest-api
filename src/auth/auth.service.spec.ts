@@ -2,10 +2,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { AuthInterface } from 'src/auth/interface/auth.interface';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { AuthInterface } from './interface/auth.interface';
 
 describe('RegisterService', (): void => {
   let service: AuthService;
@@ -14,6 +15,7 @@ describe('RegisterService', (): void => {
 
   const mockUserService = {
     create: jest.fn(),
+    findByEmail: jest.fn(),
   };
 
   const mockJwtService = {
@@ -89,6 +91,50 @@ describe('RegisterService', (): void => {
       email: registerDto.email,
       password: hashedPassword,
     });
+
+    expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+      {
+        id: user.id,
+        email: user.email,
+      },
+      {
+        secret: expect.any(String),
+      },
+    );
+  });
+
+  it('login a user, and return AuthInterface', async (): Promise<void> => {
+    const loginDto: LoginDto = {
+      email: 'john@example.com',
+      password: 'password',
+    };
+
+    const user: User = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      password: 'hashedPassword',
+      createdAt: new Date(),
+    };
+
+    const jwt: string = 'jwt-token';
+
+    mockUserService.findByEmail.mockResolvedValue(user);
+    mockJwtService.signAsync.mockResolvedValue(jwt);
+
+    const result: AuthInterface = await service.login(loginDto);
+
+    expect(result).toEqual({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+      token: jwt,
+    });
+
+    expect(mockUserService.findByEmail).toHaveBeenCalledWith(loginDto.email);
 
     expect(mockJwtService.signAsync).toHaveBeenCalledWith(
       {
