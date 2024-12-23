@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -36,8 +36,8 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthInterface> {
     const user: User = await this.user.findByEmail(loginDto.email);
 
-    if (!user && !(await this.hashCompare(loginDto.password, user.password))) {
-      return;
+    if (!user || !(await this.hashCompare(loginDto.password, user.password))) {
+      throw new UnauthorizedException();
     }
 
     const token: string = await this.generateToken(user);
