@@ -15,7 +15,9 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthInterface> {
-    const hashedPassword: string = await this.hasPassword(registerDto.password);
+    const hashedPassword: string = await this.hashPassword(
+      registerDto.password,
+    );
 
     const user: User = await this.user.create({
       name: registerDto.name,
@@ -50,10 +52,10 @@ export class AuthService {
     };
   }
 
-  async hasPassword(password: string): Promise<string> {
-    const saltRound: number = 10;
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds: number = 10;
 
-    return await bcrypt.hash(password, saltRound);
+    return await bcrypt.hash(password, saltRounds);
   }
 
   async hashCompare(password: string, hash: string): Promise<boolean> {

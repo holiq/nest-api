@@ -5,6 +5,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as process from 'node:process';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -21,10 +22,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
     };
 
-    console.error('Log:', {
-      ...data,
-      errors: exception.stack,
-    });
+    if (process.env.APP_ENV !== 'production') {
+      console.error('Log:', {
+        ...data,
+        errors: exception.stack,
+      });
+    }
 
     response.status(status).json(data);
   }

@@ -10,15 +10,17 @@ export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const user: User | null = await this.findByEmail(createUserDto.email);
+    try {
+      return await this.prisma.user.create({
+        data: createUserDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2002' && error.meta?.target.includes('email')) {
+        throw new EmailAlreadyExistsException();
+      }
 
-    if (user) {
-      throw new EmailAlreadyExistsException();
+      throw error;
     }
-
-    return this.prisma.user.create({
-      data: createUserDto,
-    });
   }
 
   async findAll(): Promise<User[]> {
