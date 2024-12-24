@@ -42,6 +42,10 @@ describe('RegisterService', (): void => {
     jwtService = module.get<JwtService>(JwtService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
     expect(userService).toBeDefined();
@@ -103,7 +107,7 @@ describe('RegisterService', (): void => {
     );
   });
 
-  it('login a user, and return AuthInterface', async (): Promise<void> => {
+  it('should login a user and return AuthInterface', async (): Promise<void> => {
     const loginDto: LoginDto = {
       email: 'john@example.com',
       password: 'password',
@@ -118,6 +122,10 @@ describe('RegisterService', (): void => {
     };
 
     const jwt: string = 'jwt-token';
+
+    jest
+      .spyOn(bcrypt, 'compare')
+      .mockImplementation(() => Promise.resolve(true));
 
     mockUserService.findByEmail.mockResolvedValue(user);
     mockJwtService.signAsync.mockResolvedValue(jwt);
@@ -145,5 +153,43 @@ describe('RegisterService', (): void => {
         secret: expect.any(String),
       },
     );
+  });
+
+  it('should throw an error if login password is incorrect', async (): Promise<void> => {
+    const loginDto: LoginDto = {
+      email: 'john@example.com',
+      password: 'wrong-password',
+    };
+
+    const user: User = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      password: 'hashedPassword',
+      createdAt: new Date(),
+    };
+
+    jest
+      .spyOn(bcrypt, 'compare')
+      .mockImplementation(() => Promise.resolve(false));
+
+    mockUserService.findByEmail.mockResolvedValue(user);
+
+    await expect(service.login(loginDto)).rejects.toThrow('Unauthorized');
+
+    expect(mockUserService.findByEmail).toHaveBeenCalledWith(loginDto.email);
+  });
+
+  it('should throw an error if user is not found during login', async (): Promise<void> => {
+    const loginDto: LoginDto = {
+      email: 'nonexistent@example.com',
+      password: 'password',
+    };
+
+    mockUserService.findByEmail.mockResolvedValue(null);
+
+    await expect(service.login(loginDto)).rejects.toThrow('Unauthorized');
+
+    expect(mockUserService.findByEmail).toHaveBeenCalledWith(loginDto.email);
   });
 });
